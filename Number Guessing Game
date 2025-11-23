@@ -1,0 +1,36 @@
+import random
+
+def number_gusseing_game():
+    print("Welcome to numbers gusseing game")
+    print("I am thinking of a number from 1 to 100")
+
+    secret_number = random.randint(1, 100)
+    attempt = 0
+    guess_correctly =  False
+
+    while not guess_correctly:
+        try:
+            guess = int(input("Take a guess: "))
+            attempt += 1
+
+            if guess < secret_number:
+                print("Take a high guess! Try aagain")
+            elif guess > secret_number:
+                print("Take a low guess! Try again")
+            else:
+                guess_correctly = True
+                print(f"Congratulation you gussed correctly after {attempt} attempt")
+
+        except ValueError:
+            print("Invalid syntax, please try whole numbers")
+        except Exception as e:
+            print(f"An unexpected value error: {e}!")
+
+    play_again = input("Do you want to play again Yes/No?: ").lower()
+    if play_again == 'yes':
+        number_gusseing_game()
+    else:
+        print("Thank you for playing!")
+
+if __name__ == "__main__":
+    number_gusseing_game()        
