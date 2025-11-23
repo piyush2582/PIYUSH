@@ -1,0 +1,244 @@
+#include <iostream>
+#include <queue>
+#include <map>
+#include <vector>
+#include <string>
+#include <iomanip>
+using namespace std;
+
+// ================== PROCESS ==================
+enum ProcessState { READY, RUNNING, BLOCKED, TERMINATED };
+
+class Process {
+public:
+    int pid;
+    string name;
+    int burstTime;
+    int remainingTime;
+    ProcessState state;
+
+    Process(int id, string name, int burst) {
+        pid = id;
+        this->name = name;
+        burstTime = burst;
+        remainingTime = burst;
+        state = READY;
+    }
+
+    void display() const {
+        string st;
+        switch (state) {
+            case READY: st = "READY"; break;
+            case RUNNING: st = "RUNNING"; break;
+            case BLOCKED: st = "BLOCKED"; break;
+            case TERMINATED: st = "TERMINATED"; break;
+        }
+        cout << "PID: " << pid 
+             << " | Name: " << name
+             << " | Remaining: " << remainingTime
+             << " | State: " << st << "\n";
+    }
+};
+
+// ================== SCHEDULER ==================
+class Scheduler {
+private:
+    queue<Process*> readyQueue;
+    Process* running;
+    int timeSlice;
+
+public:
+    Scheduler(int slice) {
+        timeSlice = slice;
+        running = nullptr;
+    }
+
+    void addProcess(Process* p) {
+        readyQueue.push(p);
+        cout << "[Scheduler] Added: " << p->name << "\n";
+    }
+
+    void runCycle() {
+        if (!running) {
+            if (readyQueue.empty()) {
+                cout << "[Scheduler] No processes!\n";
+                return;
+            }
+            running = readyQueue.front();
+            readyQueue.pop();
+            running->state = RUNNING;
+            cout << "[Scheduler] Running: " << running->name << "\n";
+        }
+
+        running->remainingTime -= timeSlice;
+
+        if (running->remainingTime <= 0) {
+            running->state = TERMINATED;
+            cout << "[Scheduler] Terminated: " << running->name << "\n";
+            running = nullptr;
+        } else {
+            running->state = READY;
+            readyQueue.push(running);
+            cout << "[Scheduler] Time slice over → moved back to queue.\n";
+            running = nullptr;
+        }
+    }
+
+    void displayStatus() {
+        cout << "\n===== Scheduler Status =====\n";
+        if (running)
+            running->display();
+        else
+            cout << "CPU Idle.\n";
+
+        cout << "Ready Queue:\n";
+        queue<Process*> temp = readyQueue;
+        while (!temp.empty()) {
+            temp.front()->display();
+            temp.pop();
+        }
+    }
+};
+
+// ================== MEMORY MANAGER ==================
+class Memory {
+private:
+    int size;
+    vector<bool> used;
+
+public:
+    Memory(int size) {
+        this->size = size;
+        used.resize(size, false);
+    }
+
+    int allocate(int blocks) {
+        for (int i = 0; i <= size - blocks; i++) {
+            bool free = true;
+
+            for (int j = 0; j < blocks; j++)
+                if (used[i + j]) free = false;
+
+            if (free) {
+                for (int j = 0; j < blocks; j++)
+                    used[i + j] = true;
+
+                cout << "[Memory] Allocated at " << i << "\n";
+                return i;
+            }
+        }
+        cout << "[Memory] Allocation failed!\n";
+        return -1;
+    }
+
+    void freeBlock(int start, int blocks) {
+        for (int i = 0; i < blocks; i++)
+            used[start + i] = false;
+
+        cout << "[Memory] Freed block at " << start << "\n";
+    }
+
+    void display() {
+        cout << "\nMemory Map:\n";
+        for (bool b : used) cout << (b ? "#" : ".");
+        cout << "\n";
+    }
+};
+
+// ================== FILE SYSTEM ==================
+class FileSystem {
+private:
+    map<string, string> files;
+
+public:
+    void createFile(string name, string data) {
+        files[name] = data;
+        cout << "[FS] Created: " << name << "\n";
+    }
+
+    void readFile(string name) {
+        if (files.count(name))
+            cout << "[FS] " << name << ": " << files[name] << "\n";
+        else
+            cout << "[FS] File not found.\n";
+    }
+
+    void listFiles() {
+        cout << "[FS] Files:\n";
+        for (auto &f : files) cout << " - " << f.first << "\n";
+    }
+};
+
+// ================== SHELL ==================
+class Shell {
+private:
+    Scheduler scheduler;
+    Memory memory;
+    FileSystem fs;
+    int pidCounter;
+
+public:
+    Shell() : scheduler(1), memory(50) {
+        pidCounter = 1;
+    }
+
+    void commandLoop() {
+        string cmd;
+
+        while (true) {
+            cout << "\nMiniOS> ";
+            cin >> cmd;
+
+            // ===== PROCESS COMMANDS =====
+            if (cmd == "run") {
+                string name;
+                int burst;
+                cin >> name >> burst;
+                scheduler.addProcess(new Process(pidCounter++, name, burst));
+            }
+            else if (cmd == "step") scheduler.runCycle();
+            else if (cmd == "ps") scheduler.displayStatus();
+
+            // ===== MEMORY COMMANDS =====
+            else if (cmd == "mem") memory.display();
+            else if (cmd == "alloc") {
+                int b; cin >> b;
+                memory.allocate(b);
+            }
+            else if (cmd == "free") {
+                int s, b; cin >> s >> b;
+                memory.freeBlock(s, b);
+            }
+
+            // ===== FILE SYSTEM =====
+            else if (cmd == "mkfile") {
+                string name, data;
+                cin >> name;
+                getline(cin, data);
+                fs.createFile(name, data);
+            }
+            else if (cmd == "cat") {
+                string name; cin >> name;
+                fs.readFile(name);
+            }
+            else if (cmd == "ls") fs.listFiles();
+
+            // ===== EXIT =====
+            else if (cmd == "exit") {
+                cout << "Shutting down MiniOS...\n";
+                break;
+            }
+
+            else {
+                cout << "Unknown command.\n";
+            }
+        }
+    }
+};
+
+// ================== MAIN ==================
+int main() {
+    Shell shell;
+    shell.commandLoop();
+    return 0;
+}
