@@ -1,0 +1,82 @@
+def show_menu():
+    print("1. Add new student")
+    print("2. view all student")
+    print("3. Search by name")
+    print("4. delete student")
+    print("5. Exit")
+
+def add_students():
+    name = input("Student Name: ")
+    strd_class = input("Class: ")
+    marks = input("Marks of the student: ")
+
+    with open("Student.txt" , "a") as file:
+        file.write(f"{name}|{strd_class}|{marks}\n")
+        print(f"{name} added successfully!")
+        print("File Saved!")
+
+def view_students():
+    try:
+        with open("Student.txt" , "r") as file:
+            lines = file.readlines()
+            if lines:
+                print("--- All Students ---")
+                for line in lines:
+                    name,strd_class,marks = line.strip().split("|")
+                    print(f"Name: {name}| Class: {strd_class} | Marks: {marks}")
+            else:
+                print("Student not found!")
+    except FileNotFoundError:
+        print("Student file not found")        
+
+def search_student():
+    keyword = input("Enter Student to search: ")
+    found = False
+
+    with open("Student.txt" , "r") as file:
+        for line in file:
+            name,strd_class,marks = line.strip().split("|")
+            if keyword in name.lower():
+                print(f"Name: {name}| Class: {strd_class} | Marks: {marks}")
+                found = True
+    if not found:
+        print("Student not found")
+
+def delete_student():
+    name_to_dlt = input("Enter student that you want to delete: ")
+    updated = []
+    deleted = False
+
+    with open("Student.txt","r") as file:
+        for line in file:
+            name, strd_class, marks = line.strip().split("|")
+            if name.lower() != name_to_dlt:
+                updated.append(line)
+            else:
+                deleted = True
+    if deleted:
+        with open("Student.txt", "w") as file:
+            file.writelines(updated)
+            print("Student deleted successfully")
+    else:
+        print("Student not found")
+
+while True:
+    print("Choose what you want to do----")
+    show_menu()
+    choice = input("Enter from 1-5: ")
+    if choice == "1":
+        add_students()
+    elif choice == "2":
+        view_students()
+    elif choice == "3":
+        search_student()
+    elif choice == "4":
+        delete_student()
+    elif choice == "5":
+        print("Have a good day!!")
+        break
+    else:
+        print("Invalid choice")
+
+    
